@@ -10,6 +10,13 @@ FH5 ModelSwap Tool is a guided, safe, automated pipeline for swapping FH5 car pa
 - Reimports/repacks with QuickBMS using the original zip as base
 - Provides a Modelbin Offset tab for batch XYZ adjustments across mesh entries
 
+## Non-negotiable rules enforced
+- No custom part names: only overwrite existing target names
+- Donor model size must be <= target model size
+- Carbin size must remain EXACTLY the same (padding with 00 allowed)
+- Repack must use QuickBMS with zip.bms (no manual zipping)
+- AO swap is required (strict mode can hard-fail if not found)
+
 ## Running the app
 1. Place `FH5-ModelSwap-Tool.exe` next to `tools/`.
 2. Run the EXE once; it will create `tools/`, `runtime/`, `logs/`, and `output/` if missing.
@@ -23,6 +30,14 @@ The UI includes download links for:
 
 These are not installed automatically.
 
+## Build the EXE
+Run:
+```
+build_exe.bat
+```
+
+The output EXE and tools folder will be created under `dist/`.
+
 ## Folder layout
 - `app/` : application source code
 - `tools/` : QuickBMS scripts and templates
@@ -34,4 +49,3 @@ These are not installed automatically.
 - QuickBMS is downloaded at runtime from the official source.
 - Replace `tools/zip.bms` with a correct zip.bms for your FH5 archives if needed.
 - This tool does NOT create new models or bypass game restrictions.
-- If windows cant find exe error 
