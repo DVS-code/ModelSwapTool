@@ -1,0 +1,1017 @@
+//------------------------------------------------
+//      File: modelbin.bt
+//   Authors: D3FEKT
+//   Version: .1
+//   Purpose: Basic Modelbin Parser, many unknowns
+// File Mask: *.modelbin
+//  ID bytes: 62 75 72 47 burG..
+//------------------------------------------------
+
+
+LittleEndian();
+
+//--------Blocks------------
+
+//Face indices block
+typedef struct {
+    long    fx;
+    long    fy;
+    long    fz;
+} IndicesBlock;
+
+//vertex block 
+typedef struct {
+    short    vx;
+    short    vy;
+    short    vz;
+    short    vunk;
+} VertexBlock8;
+
+//Txt Blocks  -- need to map block structures
+typedef struct {
+    char B8[8];
+} Block8;
+
+typedef struct {
+    char B12[12];
+} Block12;
+
+typedef struct {
+    char B16[16];
+} Block16;
+
+typedef struct {
+    char B20[20];
+} Block20;
+
+typedef struct {
+    char B24[24];
+} Block24;
+
+typedef struct {
+    char B28[28];
+} Block28;
+
+typedef struct {
+    char B32[32];
+} Block32;
+
+typedef struct {
+    char B36[36];
+} Block36;
+
+typedef struct {
+    char B40[40];
+} Block40;
+
+
+//-------Tag Index----------
+
+
+typedef struct 
+{
+SetBackColor( cLtPurple );
+    char   Header[4];
+    long   Header1;
+    long   skelstart <format=hex>;
+    long   FileDatasize;
+    long   Entrycount;
+} Modelbinheader; //burG
+Modelbinheader modelbinMB <read=Header, name="Header">;
+
+typedef struct 
+{
+    char   TagName[4];
+    long   Unknown1 <hidden=true>;
+    long   NameLocation <format=hex>;
+    long   DataStart <format=hex>;
+    long   DataSize1 <format=hex>;
+    long   DataSize2 <format=hex, hidden=true>;
+    local int pos;
+            { 
+            pos = FTell();
+            FSeek ( DataStart );
+    short   count;
+
+    typedef struct 
+        {  //create block
+        long    stringlength;
+        char    name[ stringlength ];
+        char skeletonblock[70]; //yet to decipher block data
+        } skelblock <read=name>; 
+          skelblock Block[ count ] <optimize=false>; 
+            FSeek( pos );
+            }
+} Skeleton <read=TagName>; //lekS
+
+typedef struct 
+{
+    char   TagName[4];
+    long   Unknown1;
+    long   NameLocation <format=hex>;
+    long   DataStart <format=hex>;
+    long   DataSize1 <format=hex>;
+    long   DataSize2 <format=hex>;
+    local int pos;
+                { 
+                pos = FTell();
+                FSeek ( DataStart );
+                short   count;
+                long    stringlength;
+                char    name[stringlength];
+            if  (count == 0x02)
+            {
+                long    stringlength1;
+                char    name1[stringlength1];
+            }
+            else if  (count == 0x03)
+            {
+                long    stringlength2;
+                char    name2[stringlength2];
+            }
+            else if  (count == 0x04)
+            {
+                long    stringlength3;
+                char    name3[stringlength3];
+            }
+            FSeek( pos );
+            }
+} Morph <read=TagName>; //hprM
+
+typedef struct 
+{
+    char    TagName[4];
+    long   Unknown1 <format=hex>;
+    long   NameLocation <format=hex>;
+    long   DataStart <format=hex, name="Data Entry Offset">;
+    long   DataSize1 <format=hex, name="Data Entry Size">;
+    long   DataSize2 <format=hex>;
+    local int pos;
+            { 
+            pos = FTell();
+            FSeek ( DataStart );
+            char    Header[4];
+            long   unk;
+            long   StringLengthEntry;
+            long   unk;
+            long   unk;
+            char    TagName0[4];
+            short   unk;
+            short   unk;
+            long   NameLocation <format=hex>;
+            long   DataStart1;
+            long   DataSize1;
+            long   DataSize2;
+            char    TagName1[4];
+            short   unk;
+            short   unk;
+            long   NameLocation <format=hex>;
+            long   DataStart2;
+            long   DataSize3;
+            long   DataSize4;
+            char    TagName2[4];
+            short   MatNameLength;
+            short   Unk;
+            char    TagName3[4];
+            short   Unk;
+            short   MatLength; //string length
+            char    MatiName[ MatLength - 8 ] <name="Material Name">; //subtract 8 for result
+            short   unk;
+                    FSeek ( DataStart + StringLengthEntry ); //Go to start of struct entry + string position entry
+            char    StringLength;
+            char    Stringname [ StringLength ] <name="Location String">;
+                    FSeek ( DataStart + DataStart2 );
+            char    unk;
+            char    unkpoint;
+            if      (unkpoint == 0x03)
+            {
+            char    unk0[27];
+            float    red <bgcolor=0x0000e1, name="red">;
+            float    green <bgcolor=0x18a61f, name="green">;
+            float    blue <bgcolor=0xa5421f, name="blue">;
+            char    matdata[ DataSize3 - 40 ]; //Data that contains unknown and swatchbins, to be deciphered  
+            }
+            else if (unkpoint == 0x00)
+            {
+            char    matdata0[ DataSize3 ];
+            }        
+            FSeek( pos );
+            }
+} Material <read=Stringname>; //ItaM
+
+typedef struct
+{
+    char   TagName[4];
+    long   Unknown1;
+    long   NameLocation <format=hex>;
+//Read NameLocation offset and grab Mesh Name
+    local int pos;
+            { 
+            pos = FTell();
+            FSeek ( NameLocation + 14 );
+            short MatLength <name="Name length">;
+            char MeshName[ MatLength - 8 ] <name="Mesh Name">;
+            FSeek( pos );
+            }
+    long   DataStart <format=hex, name="Data Entry Offset">;
+    long   DataSize1 <format=hex>;
+    long   DataSize2 <format=hex>;
+    if     (DataSize1 == 0xDF ) //Mesh data
+            { 
+            pos = FTell();
+            FSeek ( DataStart );  //go to datastart offset
+            short MatIDpad0;
+            short MaterialID <format=hex, bgcolor=0xfdbe02, name="Material ID", comment="Id in Mat and LOD names">;
+            long MatIDpad1;
+            byte Unk0[23];
+            long faceunk1 <bgcolor=0xffff, comment="face start locator?">;
+            long faceunk2 <bgcolor=0xffff, comment="face start / count related">;
+            long FaceCount <bgcolor=0xffff, name="Face count for Material">;
+            byte Unk1[148]; //a lot of data to decipher, more xyz floats?
+            float ScaleZ <bgcolor=0xa5421f, name="Scale Z">;
+            float ScaleY <bgcolor=0x18a61f, name="Scale Y", comment="Scale displayed as Float">;
+            float ScaleX <bgcolor=0x0000e1, name="Scale X">;
+            byte Padding[4];
+            float PositionZ <bgcolor=0xa5421f, name="Position Z">;
+            float PositionY <bgcolor=0x18a61f, name="Position Y", comment="Position displayed as Float">;
+            float PositionX <bgcolor=0x0000e1, name="Position X">;
+            byte Padding1[4];
+            FSeek( pos );
+            }
+    else if (DataSize1 == 0xCF ) //Shadow Mesh data
+            {
+             pos = FTell();
+            FSeek ( DataStart );
+            short MatIDpad0;
+            short MaterialID <format=hex, bgcolor=0xfdbe02, name="Material ID", comment="Id in Mat and LOD names">;
+            long MatIDpad1;
+            byte Unk2[31];
+            long FaceCount <bgcolor=0x02ffff, name="Face count for Material">;
+            byte unk3[132];
+            float ScaleZ <bgcolor=0xa5421f, name="Scale Z">;
+            float ScaleY <bgcolor=0x18a61f, name="Scale Y", comment="Scale displayed as Float">;
+            float ScaleX <bgcolor=0x0000e1, name="Scale X">;
+            byte Padding[4];
+            float PositionZ <bgcolor=0xa5421f, name="Position Z">;
+            float PositionY <bgcolor=0x18a61f, name="Position Y" , comment="Position displayed as Float">;
+            float PositionX <bgcolor=0x0000e1, name="Position X">;
+            byte Padding1[4];
+            FSeek( pos );
+            }
+    else if (DataSize2 == 0xD9 ) //fh3           
+            { 
+            pos = FTell();
+            FSeek ( DataStart );  //go to datastart offset
+            short MaterialID <format=hex, bgcolor=0xfdbe02, name="Material ID", comment="Id in Mat and LOD names">;
+            byte Unk0[23];
+            long faceunk1 <bgcolor=0xffff, comment="face start locator?">;
+            long faceunk2 <bgcolor=0xffff, comment="face start / count related">;
+            long FaceCount <bgcolor=0xffff, name="Face count for Material">;
+            byte Unk1[148]; //a lot of data to decipher, more xyz floats?
+            float ScaleZ <bgcolor=0xa5421f, name="Scale Z">;
+            float ScaleY <bgcolor=0x18a61f, name="Scale Y", comment="Scale displayed as Float">;
+            float ScaleX <bgcolor=0x0000e1, name="Scale X">;
+            byte Padding[4];
+            float PositionZ <bgcolor=0xa5421f, name="Position Z">;
+            float PositionY <bgcolor=0x18a61f, name="Position Y", comment="Position displayed as Float">;
+            float PositionX <bgcolor=0x0000e1, name="Position X">;
+            byte Padding1[4];
+            FSeek( pos );
+            }
+    else if (DataSize1 == 0xC9 ) //fh3 shadow
+            {
+             pos = FTell();
+            FSeek ( DataStart );
+            short MaterialID <format=hex, bgcolor=0xfdbe02, name="Material ID", comment="Id in Mat and LOD names">;
+            byte Unk2[31];
+            long FaceCount <bgcolor=0x02ffff, name="Face count for Material">;
+            byte unk3[132];
+            float ScaleZ <bgcolor=0xa5421f, name="Scale Z">;
+            float ScaleY <bgcolor=0x18a61f, name="Scale Y", comment="Scale displayed as Float">;
+            float ScaleX <bgcolor=0x0000e1, name="Scale X">;
+            byte Padding[4];
+            float PositionZ <bgcolor=0xa5421f, name="Position Z">;
+            float PositionY <bgcolor=0x18a61f, name="Position Y" , comment="Position displayed as Float">;
+            float PositionX <bgcolor=0x0000e1, name="Position X">;
+            byte Padding1[4];
+            FSeek( pos );
+            }
+} Mesh <read=MeshName>; //hseM
+
+
+
+typedef struct 
+{
+    local int pos;
+    char   TagName[4];
+    long   Unknown1;
+    long   NameLocation <format=hex>;
+            { 
+           pos = FTell();
+           FSeek ( NameLocation );
+    char   Tag[4];
+    short  unkn;
+    short  unkn1;
+    long   unkn2;
+           FSeek( pos );
+            }
+    long   DataStart <format=hex, name="Data Entry Offset">;
+    long   DataSize1;
+    long   DataSize2;
+            { 
+            pos = FTell();
+            FSeek ( DataStart );
+    long   FaceCount;
+    long   FaceLength;
+    short  Unk0;
+    short  unk1;
+    long   Unk2;
+    IndicesBlock FaceBlock[ FaceCount / 3 ] <bgcolor=0x133700, name="Face Block", comment="X,Y,Z. Data not split">; //divided by 3 for true count
+            FSeek( pos );
+            }
+} Indices <read=TagName>; //bdnI
+
+typedef struct 
+{
+    local int pos;
+    char   TagName[4];
+    long   Unknown1;
+    long   NameLocation <format=hex>;
+            { 
+           pos = FTell();
+           FSeek ( NameLocation );
+    char   Tag[4];
+    short  unkn;
+    short  unkn1;
+    long   unkn2;
+           FSeek( pos );
+            }
+    long   DataStart <format=hex>;
+    long   DataSize1 <format=hex>;
+    long   DataSize2 <format=hex>;  
+            { 
+            pos = FTell();
+            FSeek ( DataStart );
+    short   count;
+//Crappy block building
+        if (count == 0x01)
+        {
+        long    s1;
+        char    name1[s1];
+        }
+        else if (count == 0x02)
+        {
+        long    s1;
+        char    name1[s1];
+        long    s2;
+        char    name2[s2];
+        }
+        else if (count == 0x03)
+        {
+        long    s1;
+        char    name1[s1];
+        long    s2;
+        char    name2[s2];
+        long    s3;
+        char    name3[s3];
+        }
+        else if (count == 0x04)
+        {
+        long    s1;
+        char    name1[s1];
+        long    s2;
+        char    name2[s2];
+        long    s3;
+        char    name3[s3];
+        long    s4;
+        char    name4[s4];
+        }
+        else if (count == 0x05)
+        {
+        long    s1;
+        char    name1[s1];
+        long    s2;
+        char    name2[s2];
+        long    s3;
+        char    name3[s3];
+        long    s4;
+        char    name4[s4];
+        long    s5;
+        char    name5[s5];
+        }
+        else if (count == 0x06)
+        {
+        long    s1;
+        char    name1[s1];
+        long    s2;
+        char    name2[s2];
+        long    s3;
+        char    name3[s3];
+        long    s4;
+        char    name4[s4];
+        long    s5;
+        char    name5[s5];
+        long    s6;
+        char    name6[s6];
+        }
+        else if (count == 0x07)
+        {
+        long    s1;
+        char    name1[s1];
+        long    s2;
+        char    name2[s2];
+        long    s3;
+        char    name3[s3];
+        long    s4;
+        char    name4[s4];
+        long    s5;
+        char    name5[s5];
+        long    s6;
+        char    name6[s6];
+        long    s7;
+        char    name7[s7];
+        }
+        else if (count == 0x08)
+        {
+        long    s1;
+        char    name1[s1];
+        long    s2;
+        char    name2[s2];
+        long    s3;
+        char    name3[s3];
+        long    s4;
+        char    name4[s4];
+        long    s5;
+        char    name5[s5];
+        long    s6;
+        char    name6[s6];
+        long    s7;
+        char    name7[s7];
+        long    s8;
+        char    name8[s8];
+        }
+        else if (count == 0x09)
+        {
+        long    s1;
+        char    name1[s1];
+        long    s2;
+        char    name2[s2];
+        long    s3;
+        char    name3[s3];
+        long    s4;
+        char    name4[s4];
+        long    s5;
+        char    name5[s5];
+        long    s6;
+        char    name6[s6];
+        long    s7;
+        char    name7[s7];
+        long    s8;
+        char    name8[s8];
+        long    s9;
+        char    name9[s9];
+        }
+        else if (count == 0x0A)
+        {
+        long    s1;
+        char    name1[s1];
+        long    s2;
+        char    name2[s2];
+        long    s3;
+        char    name3[s3];
+        long    s4;
+        char    name4[s4];
+        long    s5;
+        char    name5[s5];
+        long    s6;
+        char    name6[s6];
+        long    s7;
+        char    name7[s7];
+        long    s8;
+        char    name8[s8];
+        long    s9;
+        char    name9[s9];
+        long    s10;
+        char    name10[s10];
+        }
+        else if (count == 0x0B)
+        {
+        long    s1;
+        char    name1[s1];
+        long    s2;
+        char    name2[s2];
+        long    s3;
+        char    name3[s3];
+        long    s4;
+        char    name4[s4];
+        long    s5;
+        char    name5[s5];
+        long    s6;
+        char    name6[s6];
+        long    s7;
+        char    name7[s7];
+        long    s8;
+        char    name8[s8];
+        long    s9;
+        char    name9[s9];
+        long    s10;
+        char    name10[s10];
+        long    s11;
+        char    name11[s11];
+        }
+        short   DataCount;
+        short   d1[10 * DataCount]; //hacky block
+        long    d2[DataCount];      //^^
+        long    unk0;
+
+
+            FSeek( pos );
+            }
+} VertexLayer <read=TagName>; //yaLV
+
+
+
+typedef struct 
+{
+    local int pos;
+    char   TagName[4];
+    long   Unknown1;
+    long   NameLocation <format=hex>;
+                { 
+                pos = FTell();
+                FSeek ( NameLocation );
+        char   Tag[4];
+        short   unkn;
+        short   unkn1;
+        long    unkn2;
+                FSeek( pos );
+                }
+    long   DataStart <format=hex, name="Data Entry Offset">;
+    long   DataSize1;
+    long   DataSize2;
+//Read Vertex start position
+            { 
+            pos = FTell();
+            FSeek ( DataStart );
+            long VertexCount <name="Vertex Block count">;
+            long VertexLength <name="Vertex data length">;
+            short BlockSize <name="Vertex Block Size">;
+            short unk0;
+            long unk1;
+
+            if (BlockSize == 0x08)
+            {
+            VertexBlock8 VBlock[ VertexCount ] <name="Vertex Block", comment="Whole 3d Model vertex">;
+            }
+
+
+//UV Blocks, yet to map
+            else if (BlockSize == 0x0C)
+            {
+            Block12 VBlock12[ VertexCount ];
+            }
+
+            else if (BlockSize == 0x10)
+            {
+            Block16 VBlock16[ VertexCount ];
+            }
+
+            else if (BlockSize == 0x14)
+            {
+            Block20 VBlock20[ VertexCount ];
+            }
+
+            else if (BlockSize == 0x18)
+            {
+            Block24 VBlock24[ VertexCount ];
+            }
+
+            else if (BlockSize == 0x1C)
+            {
+            Block28 VBlock28[ VertexCount ];
+            }
+
+            else if (BlockSize == 0x20)
+            {
+            Block32 VBlock32[ VertexCount ];
+            }
+
+            else if (BlockSize == 0x24)
+            {
+            Block36 VBlock36[ VertexCount ];
+            }
+
+            else if (BlockSize == 0x28)
+            {
+            Block40 VBlock40[ VertexCount ];
+            }
+            FSeek( pos );
+            }
+} VertexBuffer <read=TagName>; //BreV
+
+typedef struct 
+{
+    local int pos;
+    char   TagName[4];
+    long   Unknown1;
+    long   NameLocation <format=hex>;
+                { 
+                pos = FTell();
+                FSeek ( NameLocation );
+        char   Tag[4];
+        short   unkn;
+        short   unkn1;
+        long    unkn2;
+                FSeek( pos );
+                }
+    long   DataStart <format=hex, name="Data Entry Offset">;
+    long   DataSize1;
+    long   DataSize2;
+            { 
+            pos = FTell();
+            FSeek ( DataStart );
+    long    DataCount;
+    long    DataSize;
+    short   BlockSize;
+    short   unk3;
+    long    unk4; 
+            if (BlockSize == 0x08) 
+            {
+            Block8 MBlock8[ DataCount ] <name="Material Buffer Block">;
+            }
+            else if (BlockSize == 0x0C)
+            {
+            Block12 MBlock12[ DataCount ];
+            }
+
+            else if (BlockSize == 0x10)
+            {
+            Block16 MBlock16[ DataCount ];
+            }
+
+            else if (BlockSize == 0x14)
+            {
+            Block20 MBlock20[ DataCount ];
+            }
+
+            else if (BlockSize == 0x18)
+            {
+            Block24 MBlock24[ DataCount ];
+            }
+
+            else if (BlockSize == 0x1C)
+            {
+            Block28 MBlock28[ DataCount ];
+            }
+
+            else if (BlockSize == 0x20)
+            {
+            Block32 MBlock32[ DataCount ];
+            }
+
+            else if (BlockSize == 0x24)
+            {
+            Block36 MBlock36[ DataCount ];
+            }
+
+            else if (BlockSize == 0x28)
+            {
+            Block40 MBlock40[ DataCount ];
+            }
+            FSeek( pos );
+            }
+} MaterialBuffer <read=TagName>;  //fubM
+
+typedef struct 
+{
+    local int pos; //skin blocks, not in most modelbins? 
+    char   TagName[4];
+    long   Unknown1;
+    long   NameLocation <format=hex>;
+            { 
+           pos = FTell();
+           FSeek ( NameLocation );
+    char   Tag[4];
+    short  unkn;
+    short  unkn1;
+    long   unkn2;
+           FSeek( pos );
+            }
+    long   DataStart <format=hex>;
+    long   DataSize1 <format=hex>;
+    long   DataSize2 <format=hex>;
+            { 
+            pos = FTell();
+            FSeek ( DataStart );
+    long    DataCount;
+    long    DataSize;
+    short   BlockSize;
+    short   unk3;
+    long    unk4; 
+            if (BlockSize == 0x08)
+            {
+            Block8 MBlock8[ DataCount ] <name="Skin Blocks">;
+            }
+            else if (BlockSize == 0x0C)
+            {
+            Block12 MBlock12[ DataCount ];
+            }
+
+            else if (BlockSize == 0x10)
+            {
+            Block16 MBlock16[ DataCount ];
+            }
+
+            else if (BlockSize == 0x14)
+            {
+            Block20 MBlock20[ DataCount ];
+            }
+
+            else if (BlockSize == 0x18)
+            {
+            Block24 MBlock24[ DataCount ];
+            }
+
+            else if (BlockSize == 0x1C)
+            {
+            Block28 MBlock28[ DataCount ];
+            }
+
+            else if (BlockSize == 0x20)
+            {
+            Block32 MBlock32[ DataCount ];
+            }
+
+            else if (BlockSize == 0x24)
+            {
+            Block36 MBlock36[ DataCount ];
+            }
+
+            else if (BlockSize == 0x28)
+            {
+            Block40 MBlock40[ DataCount ];
+            }
+            FSeek( pos );
+            }
+} Skin <read=TagName>; //nikS
+
+typedef struct //related to bounding box
+{
+    local int pos;
+    char   TagName[4];
+    long   Unknown1;
+    long   NameLocation <format=hex>;
+                { 
+                pos = FTell();
+                FSeek ( NameLocation );
+        char    TagName1;
+        char    TagName2[3];
+        if (TagName1 == 0x78 )
+                {
+        short   unkn1;
+        short   unkn2;
+        float   bbz1;
+        float   bby1;
+        float   bbx1;
+        float   bbz2;
+        float   bby2;
+        float   bbx2;
+                }
+                FSeek( pos );
+                }
+    long   DataStart <format=hex>;
+    long   DataSize1;
+    long   DataSize2;
+                { 
+                pos = FTell();
+                FSeek ( DataStart );
+        short   unk1;
+        short   unk2;
+        short   unk3;
+        short   unk4;
+        short   unk5;
+        short   unk6;
+        short   unk7;
+        short   unk8; //end of file
+                FSeek( pos );
+                }
+} Model <read=TagName>; //ldoM 
+
+typedef struct  //Mat Index
+{
+
+    char    TagName[4];    //emaN
+    ushort  MatNameLength; //in reverse nibble???
+    short   unk0;
+    long    TagName2;     //Id and bounding box
+    short   unk1;
+    short   MatLength;
+    if (TagName2 == 0x49642020 ) //  ID
+{
+    char MaterialName[ MatLength - 8 ] <bgcolor=0xffff>;
+    char MatID <name="Material ID", comment="Material Id to assign to mesh entries">;             //Material ID
+    char unk3[3];
+}
+    else if (TagName2 == 0x42426F78 ) //  Bounding Box, LOD
+{
+    char MaterialName[ MatLength - 8 ] <bgcolor=0xffaa>;
+    float unkxyz[6]; //bounding box cube size?
+}
+
+} MaterialID <read=MaterialName>; //emaN
+
+
+//---------------------------------
+//---------------------------------
+//manufacturer colors
+
+typedef struct {
+        char    unk;
+        float   r;
+        float   g;
+        float   b;
+        byte    stringlength;
+        char    path[stringlength];
+        long    Materialblock1;
+        float   r;
+        float   g;
+        float   b;
+        byte    stringlength1;
+        char    path1[stringlength1];
+        long    Materialblock2;
+        float   r;
+        float   g;
+        float   b;
+        byte    stringlength2;
+        char    path2[stringlength2];
+        long    Materialblock3;
+        float   r;
+        float   g;
+        float   b;
+        byte    stringlength3;
+        char    path3[stringlength3];
+} colorblock4;
+
+
+typedef struct {
+        char    unk;
+        float   r;
+        float   g;
+        float   b;
+        byte    stringlength;
+        char    path[stringlength];
+        long    Materialblock1;
+        float   r;
+        float   g;
+        float   b;
+        byte    stringlength1;
+        char    path1[stringlength1];
+        long    Materialblock2;
+        float   r;
+        float   g;
+        float   b;
+        byte    stringlength2;
+        char    path2[stringlength2];
+} colorblock3;
+
+typedef struct {
+        char    unk;
+        float   r;
+        float   g;
+        float   b;
+        byte    stringlength;
+        char    path[stringlength];
+        long    Materialblock1;
+        float   r;
+        float   g;
+        float   b;
+        byte    stringlength1;
+        char    path1[stringlength1];
+} colorblock2;
+
+typedef struct {
+        char    unk;
+        float   r;
+        float   g;
+        float   b;
+        byte    stringlength;
+        char    path[stringlength];
+} colorblock1;
+
+typedef struct 
+{
+    char   TagName[4];
+    long   FileSize <format=hex>;
+    long   DataStart1 <format=hex>;
+    long   DataStart2 <format=hex>;
+    long   DataSize1 <format=hex>;
+    long   DataSize2 <format=hex>;
+
+    local int pos;
+                pos = FTell();
+                FSeek ( DataStart1 );
+    byte   ColorCount;
+
+///////
+
+    typedef struct 
+        {  //create block
+    long    Materialblock;
+    if ( Materialblock == 0x00001D01 )
+            {
+            colorblock1 Mcolorblock1;
+            }
+    else if ( Materialblock == 0x00001D02 )
+            {
+            colorblock2 Mcolorblock2;
+            }
+    else if ( Materialblock == 0x00001D03 )
+            {
+            colorblock3 Mcolorblock3;
+            }
+    else if ( Materialblock == 0x00001D04 )
+            {
+            colorblock4 Mcolorblock4;
+            }
+        } manblock; 
+          manblock Block [ ColorCount ]  <optimize=false>; 
+            FSeek( pos );            
+} Mancolors <read=TagName>; //LCNM
+
+local uint tag;
+LittleEndian(); 
+while( !FEof() )
+{
+    tag = ReadUInt( FTell() );
+
+    if( tag == 0x536b656c )
+    {
+        SetBackColor( 0xc80815 );
+        Skeleton SkeletonMB <name="Skeleton Entries">;
+    }
+    else if( tag == 0x4D727068 )
+    {
+        SetBackColor( 0x800020 );
+        Morph MorphMB <name="Morph Entries">;
+    }
+    else if( tag == 0x4D617449 )
+    {
+        SetBackColor( 0x8cddfc );
+        Material MaterialMB <name="Material Entries">;
+    }
+    else if( tag == 0x4D657368 )
+    {
+        SetBackColor( 0x200011 );
+        Mesh MeshMB <name="Mesh Entries">;
+    }
+    else if( tag == 0x496E6442 )
+    {
+        SetBackColor( 0x0771de );
+        Indices IndicesMB <name="Face Entries">;
+    }
+    else if( tag == 0x564C6179 )
+    {
+        SetBackColor( 0x54ffce );
+        VertexLayer VertexLayerMB <name="Vertex Layer Entries">;
+    }
+    else if( tag == 0x56657242 )
+    {
+        SetBackColor( 0xf493b7 );
+        VertexBuffer VertexBufferMB <name="Vertex Buffer Entries">;
+    }
+    else if( tag == 0x4D427566 )
+    {
+        SetBackColor( 0xb8ab6a );
+        MaterialBuffer MaterialBufferMB <name="Material Buffer Entries">;
+    }
+    else if( tag == 0x4D6F646C )
+    {
+        SetBackColor( 0x420699 );
+        Model ModelMB <name="Model Entries">;
+    }
+    else if( tag == 0x536B696E )
+    {
+        SetBackColor( 0x446699 );
+        Skin SkinMB <name="Skin Entries">;
+    }
+    else if( tag == 0x4E616d65 )
+    {
+        SetBackColor( 0x420679 );
+        MaterialID MaterialIDMB <name="Material and lod names">;
+    }
+    else if( tag == 0x4D4E434C )
+    {
+        SetBackColor( 0xF506A6 );
+        Mancolors MancolorsMB <name="Manufacturer Colours">;
+    }
+    else
+    {
+        return -1;
+    }
+
+}
+
+
+
+
+
